@@ -1,0 +1,67 @@
+
+pipeline {
+    agent any
+    triggers { cron('H/10 * * * *') }
+    options { timeout(time: 5) }
+    environment {
+       
+       exitValue = sh(script: "ping -c 4 www.google.com", returnStatus: true) 
+       //can be used in whole pipeline
+   }
+    stages {
+        stage('Main'){
+            steps{
+                sh 'echo "###########################################################################"  >> Registro.txt'
+                sh 'date >> Registro.txt'  
+            }
+        }
+        
+        stage('User'){
+            steps{
+                sh 'echo "USER------------------------------------------" >> Registro.txt'
+                sh 'echo "-Usuarios conectados" >> Registro.txt'
+                sh 'who >> Registro.txt'
+
+                sh 'echo "-Error LOGIN" >> Registro.txt'
+                sh 'sudo cat /var/log/auth.log | grep failure >> Registro.txt'
+            }
+        }
+    
+        stage('System') {
+            steps {
+                sh 'echo "SYSTEM------------------------------------------" >> Registro.txt'
+                sh 'echo "- SystemUP" >> Registro.txt'
+                sh 'uptime -p >> Registro.txt'
+                    
+                sh 'echo "- Memory Free RAM" >> Registro.txt'
+                sh 'free >> Registro.txt'
+                    
+                sh 'echo "- Estado del disco"'
+                sh 'df -h >> Registro.txt'
+                    
+                sh 'echo "- Temperatura" >> Registro.txt'
+                sh 'sensors >> Registro.txt'
+            }
+        }
+
+        stage('Network') {
+            steps {
+                sh 'echo "NETWORK------------------------------------------" >> Registro.txt'
+                sh 'echo "- Interfaz"'
+                sh 'ip address show >> Registro.txt'
+                
+                sh 'echo "- Open Ports" >> Registro.txt'
+                sh 'sudo netstat -putona >> Registro.txt'
+                
+                script{    
+                    if(exitValue != "0"){
+                    	 sh 'echo "- Sin conectividad! - Reconectando" >> Registro.txt'
+                    	 sh 'curl -k -u usuario:password http://localhost:8080/job/DontNotConnectivity/build?token=DontNotConnectivity'
+                    }else{
+                        sh 'echo "- Conectividad OK!" >> Registro.txt' 
+                    }
+                }
+            }
+        }
+    }
+}
