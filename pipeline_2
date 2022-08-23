@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+    options { timeout(time: 120) }
+    environment {
+       exitValue = sh(script: "ping -c 4 www.google.com", returnStatus: true) 
+   }
+    stages {
+        stage('Network') {
+            steps {
+                sh 'echo "--------------------Reiniciando interface---------------------------" >> Registro.txt'
+                script{    
+                    if(exitValue != "0"){
+                    	 sh 'sudo ip link set wlp2s0 down >> Registro.txt'
+                    	 sh 'sleep 30'
+                    	 sh 'sudo ip link set wlp2s0 up >> Registro.txt'
+                    }else{
+                        sh 'echo "- Conectividad OK!" >> Registro.txt' 
+                    }
+                }
+            }
+        }
+    }
+}
